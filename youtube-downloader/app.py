@@ -43,25 +43,20 @@ def download_video():
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             # Primeiro, vamos obter informações do vídeo
             info = ydl.extract_info(url, download=False)
-            video_title = info.get('title', 'Vídeo')
+            video_id = info.get('id')
             
             # Agora fazer o download
             ydl.download([url])
             
-            # Descobrir extensão do arquivo baixado
-            if quality == 'audio':
-                ext = 'mp3'
+            # Procura qualquer arquivo baixado com o ID do vídeo
+            files = glob.glob(f"downloads/*{video_id}*")
+            if not files:
+                # Se não encontrar pelo ID, tenta pegar o arquivo mais recente
+                files = sorted(glob.glob("downloads/*"), key=os.path.getmtime, reverse=True)
+            if files:
+                filepath = files[0]
             else:
-                ext = info.get('ext', 'mp4')
-            filename = f"{video_title}.{ext}"
-            filepath = os.path.join('downloads', filename)
-            # Se não encontrar, tenta qualquer arquivo com o título
-            if not os.path.exists(filepath):
-                files = glob.glob(f"downloads/{video_title}.*")
-                if files:
-                    filepath = files[0]
-                else:
-                    raise Exception("Arquivo não encontrado após download.")
+                raise Exception("Arquivo não encontrado após download.")
         
         # Envia o arquivo para o usuário baixar
         return send_file(filepath, as_attachment=True, download_name=os.path.basename(filepath))
